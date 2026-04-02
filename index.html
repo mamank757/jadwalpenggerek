@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jadwal Pengendalian PBP - BPP Bola</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root { 
+      --bg-body: #121212; --bg-card: #1e1e1e; --bg-input: #2d2d2d;
+      --text-main: #e0e0e0; --text-muted: #a0a0a0; --border-color: #333333; --primary: #81c784;
+      --warning: #ffd54f; --danger: #ff8a80;
+    }
+    body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-body); margin: 0; padding: 15px; color: var(--text-main); }
+    .container { max-width: 850px; margin: auto; }
+    
+    .home-btn {
+      position: absolute; top: 15px; left: 15px;
+      background: var(--bg-card); border: 1px solid var(--border-color);
+      color: var(--primary); padding: 10px 15px; border-radius: 10px;
+      text-decoration: none; font-size: 1.2rem; transition: 0.3s;
+    }
+    .home-btn:hover { background: var(--primary); color: #121212; }
+
+    .main-header { text-align: center; margin-bottom: 25px; padding-top: 40px; }
+    .main-header h1 { color: var(--primary); font-size: 1.1rem; font-weight: 800; text-transform: uppercase; margin: 0; }
+    .card { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    h2 { color: var(--primary); margin: 0 0 15px 0; display: flex; align-items: center; gap: 12px; font-size: 1.1rem; }
+    
+    .input-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    .input-box { flex: 1; min-width: 200px; }
+    
+    label { font-weight: 600; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; display: block; }
+    input[type="date"] { width: 100%; padding: 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-input); color: white; outline: none; box-sizing: border-box; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+    
+    .table-container { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 600px; color: var(--text-main); }
+    th { background: #252525; color: var(--text-muted); font-size: 0.7rem; padding: 12px; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+    td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+    
+    /* Warna Baris Khusus */
+    .pbp-sundep { background-color: #3e2723 !important; color: #ffab91; } /* Bahaya Sundep */
+    .pbp-beluk { background-color: #3a1c1c !important; color: #ff8a80; } /* Bahaya Beluk */
+    .moon-phase { color: var(--warning); font-style: italic; font-size: 0.75rem; }
+    .planting-row { color: var(--primary); font-weight: 800; background-color: #1a2e1c !important; }
+    
+    .footer { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 30px; padding: 20px 0; border-top: 1px dashed var(--border-color); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="https://mamank757.github.io/petani" class="home-btn"><i class="fas fa-home"></i></a>
+  
+  <div class="main-header">
+    <h1>Monitoring Penggerek Batang Padi</h1>
+  </div>
+
+  <div class="card">
+    <h2><i class="fas fa-bug"></i> Kalender Pengendalian PBP</h2>
+    
+    <div class="input-group">
+        <div class="input-box">
+            <label>Tanggal Tanam (Prediksi):</label>
+            <input type="date" id="tglTanam" onchange="generateKalender()">
+        </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+            <tr>
+                <th>Minggu</th>
+                <th>Estimasi Tanggal</th>
+                <th>Kondisi & Tindakan PPL</th>
+            </tr>
+        </thead>
+        <tbody id="tabelKalender">
+          <tr><td colspan="3" style="text-align:center; color:var(--text-muted);">Pilih tanggal tanam untuk simulasi siklus</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">© 2026 King Mamank • PPL BPP Bola - Kab. Wajo</div>
+</div>
+
+<script>
+// Fungsi sederhana hitung fase bulan (Hampir Purnama)
+// Ini membantu menentukan kapan ngengat PBP biasanya aktif terbang
+function getMoonInfo(date) {
+    const moonCycle = 29.53;
+    const knownFullMoon = new Date("2026-03-03"); // Referensi bulan purnama terdekat 2026
+    const diffDays = (date - knownFullMoon) / (1000 * 60 * 60 * 24);
+    const cyclePos = diffDays % moonCycle;
+    
+    if (cyclePos >= 13 && cyclePos <= 16) return "🌕 Terang Bulan (Puncak Ngengat)";
+    if (cyclePos >= 27 || cyclePos <= 2) return "🌑 Bulan Mati";
+    return "";
+}
+
+function generateKalender() {
+  const tgl = document.getElementById('tglTanam').value;
+  if (!tgl) return;
+  const tglObj = new Date(tgl);
+  
+  // Variabel Siklus PBP disesuaikan dengan Fase Pertumbuhan (Ketersediaan Makanan)
+  const list = [
+    { m: "Mg -2", d: -14, task: "Sanitasi Singgang & Gulma (Hilangkan Inang PBP)", icon: "fa-broom" },
+    { m: "Mg -1", d: -7, task: "Pengumpulan Kelompok Telur di Persemaian", icon: "fa-search" },
+    { m: "Mg 0", d: 0, task: "PENANAMAN SEREMPAK", icon: "fa-seedling", type: "plant" },
+    { m: "Mg 2", d: 14, task: "WASPADA SUNDEP: Monitoring larva masuk batang", icon: "fa-biohazard", type: "sundep" },
+    { m: "Mg 4", d: 28, task: "Aplikasi Agens Hayati (Beauveria bassiana)", icon: "fa-flask" },
+    { m: "Mg 6", d: 42, task: "Pemasangan Light Trap (Lampu Perangkap)", icon: "fa-lightbulb" },
+    { m: "Mg 8", d: 56, task: "WASPADA BELUK: Fase Bunting, jangan telat kendali", icon: "fa-exclamation-circle", type: "beluk" },
+    { m: "Mg 10", d: 70, task: "Puncak Kerawanan Malai (Lindungi Keluar Malai)", icon: "fa-shield-virus", type: "beluk" },
+    { m: "Mg 12", d: 84, task: "Pengamatan Pengisian Bulir", icon: "fa-wheat-awn" },
+    { m: "Mg 14", d: 98, task: "PANEN & Segera Olah Tanah (Putus Siklus PBP)", icon: "fa-cut" }
+  ];
+
+  const tbody = document.getElementById('tabelKalender');
+  tbody.innerHTML = '';
+  
+  list.forEach((item) => {
+    let d = new Date(tglObj);
+    d.setDate(tglObj.getDate() + item.d);
+    
+    let moonStatus = getMoonInfo(d);
+    let row = tbody.insertRow();
+    
+    // Kolom Minggu
+    row.insertCell(0).innerHTML = `<b>${item.m}</b>`;
+    
+    // Kolom Tanggal + Info Bulan
+    let dateCell = row.insertCell(1);
+    dateCell.innerHTML = `${d.toLocaleDateString('id-ID', {day:'2-digit', month:'short'})} <br> <span class="moon-phase">${moonStatus}</span>`;
+    
+    // Kolom Tindakan
+    let c = row.insertCell(2);
+    c.innerHTML = `<i class="fas ${item.icon}"></i> ${item.task}`;
+    
+    // Styling baris berdasarkan resiko
+    if (item.type === "plant") row.className = 'planting-row';
+    if (item.type === "sundep") row.className = 'pbp-sundep';
+    if (item.type === "beluk") row.className = 'pbp-beluk';
+  });
+}
+</script>
+</body>
+</html>
